@@ -1,4 +1,4 @@
-git# Creando una app para manejar mi Zettelkasten
+# Creando una app para manejar mi Zettelkasten
 
 ## Tecnologías
 
