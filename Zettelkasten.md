@@ -1,4 +1,4 @@
-# Creando una app para manejar mi Zettelkasten
+git# Creando una app para manejar mi Zettelkasten
 
 ## Tecnologías
 
@@ -62,7 +62,7 @@ php artisan make:model -mrc Chirp
 
 ## Probando nuestras rutas y controladores retornando un mensaje del metodo **index** de nuestra nueva clase [ZettelController]:
 
-`
+~~~
 <?php
 
 namespace App\Http\Controllers;
@@ -81,7 +81,8 @@ class ZettelController extends Controller
         return response('Hello, World!');
     }
 ...
-}`
+}
+~~~
 
 ## Blade
 
