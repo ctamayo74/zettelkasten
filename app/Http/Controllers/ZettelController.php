@@ -17,7 +17,9 @@ class ZettelController extends Controller
     public function index(): View
     {
         //
-        return view('zettels.index');
+        return view('zettels.index', [
+            'zettels' => Zettel::with('user')->latest()->get(),
+        ]);
     }
 
     /**
