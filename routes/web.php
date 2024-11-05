@@ -21,7 +21,7 @@ Route::middleware('auth')->group(function () {
 
 
 Route::resource('zettels', ZettelController::class)
-    ->only(['index','store'])
+    ->only(['index','store','edit','update'])
     ->middleware(['auth','verified']);
 
 

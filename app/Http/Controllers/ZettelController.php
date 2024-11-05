@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
 class ZettelController extends Controller
@@ -58,17 +59,31 @@ class ZettelController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(Zettel $zettel)
+    public function edit(Zettel $zettel): View
     {
-        //
+        Gate::authorize('update', $zettel);
+
+        return view('zettels.edit', [
+            'zettel' => $zettel,
+        ]);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Zettel $zettel)
+    public function update(Request $request, Zettel $zettel): RedirectResponse
     {
-        //
+        Gate::authorize('update', $zettel);
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'body' => 'required|string',
+            'reference' => 'nullable|string|max:255',
+        ]);
+
+        $zettel->update($validated);
+
+        return redirect(route('zettels.index'));
     }
 
     /**

@@ -399,3 +399,178 @@ Actualicemos nuestro componente **zettels.index** para mostrar los Zettels abajo
 
 > Ahora podemos ver en nuestro navegador el Zettel que ingresamos anteriormente!
 
+# Editando los Zettels
+
+Vamos a agregar la característica de editar los Zettels.
+
+## Routing
+
+Primero actualizaremos el archivo de las rutas para habilitar las rutas **zettels.edit** y **zettels.update** para nuestro controlador. La ruta **zettels.edit** desplegara la forma para editar el Zettel, mientras que la ruta **zettels.update** aceptará los datos del formulario y actualizará el modelo
+
+~~~
+
+<?php
+ ...
+Route::resource('zettels', ZettelController::class)
+    ->only(['index','store','edit','update'])
+    ->middleware(['auth','verified']);
+ ...
+
+ ~~~
+
+ ## Enlazando la página edit
+
+ Ahora, enlacemos nuestra nueva ruta **zettels.edit**. Usaremos el componente **x-dropdown** que viene con Breeze, el cuál mostrará solo el autor del Zettel. También mostraremos una indicación si el Zettel ha sido editado comparando la fecha del campo **created_at** del Zettel con su fecha **updated_at**:
+
+ ~~~
+
+
+
+ ~~~
+
+ ## Creando el formulario edit
+
+ Vamos a crear una nueva vista Blade con un formulario para editar un Zettel. Este es similar al formulario para crear Zettels, excepto que publicaremos a la ruta **zettels.update** y usaremos la directiva **@method** para especificar que estamos haciendo un pedido o request "PATCH". También pre-completaremos el campo con el mensaje existente del Zettel:
+
+ ~~~
+
+<x-app-layout>
+    <div class="max-w-2xl mx-auto p-4 sm:p-6 lg:p-8">
+        <form method="POST" action="{{ route('zettels.update', $zettel) }}">
+            @csrf
+            @method('patch')
+
+            <!-- Campo Title -->
+            <div class="mb-4">
+                <label for="title" class="block text-sm font-medium text-gray-700">{{ __('Title') }}</label>
+                <input
+                    type="text"
+                    name="title"
+                    id="title"
+                    value="{{ old('title', $zettel->title) }}"
+                    class="block w-full border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md shadow-sm"
+                />
+                <x-input-error :messages="$errors->get('title')" class="mt-2" />
+            </div>
+
+            <!-- Campo Body -->
+            <div class="mb-4">
+                <label for="body" class="block text-sm font-medium text-gray-700">{{ __('Body') }}</label>
+                <textarea
+                    name="body"
+                    id="body"
+                    class="block w-full border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md shadow-sm"
+                >{{ old('body', $zettel->body) }}</textarea>
+                <x-input-error :messages="$errors->get('body')" class="mt-2" />
+            </div>
+
+            <!-- Campo Reference -->
+            <div class="mb-4">
+                <label for="reference" class="block text-sm font-medium text-gray-700">{{ __('Reference') }}</label>
+                <input
+                    type="text"
+                    name="reference"
+                    id="reference"
+                    value="{{ old('reference', $zettel->reference) }}"
+                    class="block w-full border-gray-300 focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 rounded-md shadow-sm"
+                />
+                <x-input-error :messages="$errors->get('reference')" class="mt-2" />
+            </div>
+
+            <div class="mt-4 space-x-2">
+                <x-primary-button>{{ __('Save') }}</x-primary-button>
+                <a href="{{ route('zettels.index') }}" class="text-indigo-600 hover:text-indigo-900">{{ __('Cancel') }}</a>
+            </div>
+        </form>
+    </div>
+</x-app-layout>
+
+
+ ~~~
+
+ ## Actualizando nuestro controlador
+
+ Actualizemos el método **edit** en nuestro **ZettelController** para mostrar nuestro formulario. Laravel automáticamente cargará el modelo Zettel desde la base de datos usando el enlace de ruta del modelo (route model binding) para que podamos pasarlo directamente a la vista.
+
+ Después, actualizaremos el método **update** para validar el request y actualizar la base de datos.
+
+ Aunque solo estamos mostrando el botón de editar al autor de el Zettel, aún necesitamos asegurarnos que el usuario que accese estas rutas esta autorizado:
+
+ ~~~
+
+<?php
+ ...
+use Illuminate\Support\Facades\Gate;
+use Illuminate\View\View;
+ 
+class ZettelController extends Controller
+{
+ ...
+    /**
+     * Show the form for editing the specified resource.
+     */
+   public function edit(Zettel $zettel): View
+    {
+        Gate::authorize('update', $zettel);
+
+        return view('zettels.edit', [
+            'zettel' => $zettel,
+        ]);
+    }
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, Zettel $zettel): RedirectResponse
+    {
+        Gate::authorize('update', $zettel);
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'body' => 'required|string',
+            'reference' => 'nullable|string|max:255',
+        ]);
+
+        $zettel->update($validated);
+
+        return redirect(route('zettels.index'));
+    }
+ ...
+}
+
+ ~~~
+
+ ## Autorización
+
+ Por defecto, el método **authorize** prevendrá que cualquiera sea capaz de actualizar el Zettel. Podemos especificar quien tiene permitido actualizarlo creando una política del Modelo (**Model Policy**) con el siguiente comando:
+
+ ~~~
+
+ php artisan make:policy ZettelPolicy --model=Zettel
+
+ ~~~
+
+ Esto creará una clase de política en **app/Policies/ZettePolicy.php**, la cuáal podemos actualizar para especificar que solo el autor esta autorizado para actualizar un Zettel:
+
+ ~~~
+
+ <?php
+ ...
+class ZettelPolicy
+{
+ ...
+    /**
+     * Determine whether the user can update the model.
+     */
+    public function update(User $user, Zettel $zettel): bool
+    {
+        //
+        return $zettel->user()->is($user);
+    }
+ ...
+}
+
+~~~
+
+## Probándolo
+
+Es hora de probarlo. Vamos y editemos algunos Zettels usando el menu desplegable. Si está registrado con otra cuenta de usuario, verás que solo el autor del Zettel podrá editarlo.
